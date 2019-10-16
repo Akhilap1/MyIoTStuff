@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <script src="dependencies/jquery.min.js" type="text/javascript"></script>
+    <script src="dependencies/mqttws31.js" type="text/javascript"></script>
+    <title>MQTT Publish Location</title>
+    <script type="text/javascript">
+
+//This example has been borrowed from https://github.com/jpmens/tempgauge and modifed to display a simple text output
+//
+//
+//Multiple publishers to the topic will send a value (Location or Address in our case) 
+//Publisher 1: desktop with mosquitton installed (Install mosquitto on fedora using "dnf install fedora"
+//Publish to topic on test.mosquitto.org using the following command from the command line: 
+//  mosquitto_pub -h test.mosquitto.org -t akhila/location -m lat, long
+//  mosquitto_pub -h test.mosquitto.org -t akhila/location -m <value>
+//
+//Publisher 2: mobile (android mobile publisher with MQTT Dash App
+//SETUP: Download the MQTT Dash App on mobile
+//Add a new connection Name: test.mosquitto, Address: test.mosquitto.org, Port:1883, ClientID (auto generated): mqttdash-5a9c496f
+//Add a new payload Name:test, Topic: akhila/location
+//Publish values
+
+//Example HTML client (subscriber ONLY) that illustrates MQTT comminications using pub/sub model from multiple devices
+//The following HTML will run on a laptop or desktop creating a client connection to the mosquitto broker on
+//	test.mosquitto.org
+//and will subscribe to messages in the topic "akhila/location"
+//Download the mqttws31.js (for web sockets)
+//This should work on any browser to connect to the live broker on test.mosquitto.org
+//The following URL provides details on the HOSTName and Port for websocket and regular MQTT connections
+//One could also create a broker on the loaclhost by downloading mosquitto and running the broker/server 
+//on the localhost. In that case the publisher and subscribers must be on the same network (NOT TESTED HERE)
+ 
+
+//Create an MQTT Client
+
+	var client = new Messaging.Client("test.mosquitto.org", 8080,
+				"myclientid_AKHILA" + parseInt(Math.random() * 100, 10));
+
+//	var client = new Messaging.Client("localhost", 1883,
+//				"myclientid_" + parseInt(Math.random() * 100, 10));
+//The value of a variable (IoT reading etc..) that will be received from a MQTT publisher
+
+	client.onConnectionLost = function (responseObject) {
+		alert("connection lost: " + responseObject.errorMessage);
+
+	};
+	client.onMessageArrived = function (message) {
+		//alert(message.payloadString);
+        updateReceivedValues(message.payloadString, message.destinationName);
+
+	};
+	var options = {
+		timeout: 3,
+		onSuccess: function () {
+		//	alert("Connected");
+			updateConnectionStatus("Connected");
+			// Connection succeeded; subscribe to our topic
+            alert("Subscribing////");
+			client.subscribe('device1/location', {qos: 0});
+			client.subscribe('device2/location', {qos: 0});
+
+		},
+		onFailure: function (message) {
+			alert("Connection failed: " + message.errorMessage);
+			updateConnectionStatus("Connection failed: " + message.errorMessage);
+		}
+	};
+	function init() {
+		/* Connect to MQTT broker */
+		client.connect(options);
+	}
+
+    function updateReceivedValues(val, topic)
+	{
+		var Alltext = document.getElementById("subscribedText").value;
+			var dt = new Date();
+			var utcDate = dt.toUTCString();
+		    Alltext += "\n" + utcDate + " Topic:" + topic + "  Value:" + val;
+		document.getElementById("subscribedText").value = Alltext;
+	}
+    function updateConnectionStatus(value)
+	{
+		document.getElementById("ConnectionStatus").value = value;
+	}
+
+    </script>
+  </head>
+  <body onload="init();">
+		<div>Messages............
+       <textarea rows="10" cols="100" id="subscribedText"></textarea>
+		</div>
+       <div>Connection Status....
+       <textarea id="ConnectionStatus"></textarea>
+	</div>
+  </body>
+</html>
+
